@@ -1,0 +1,13 @@
+version: 2
+
+sources:
+  - name: sql_salesforce_source
+    description: ""
+    database: salesforce_bronze_p
+    schema: salesforce_data
+    tables:
+      - name: sf_user
+        description: ""
+      - name: account
+
+      - name: opportunity

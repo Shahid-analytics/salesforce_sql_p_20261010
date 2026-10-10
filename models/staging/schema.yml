@@ -1,0 +1,27 @@
+version: 2
+
+models:
+  - name: stg_account
+    columns:
+      - name: account_id
+        data_tests:
+          - not_null
+          - unique
+      - name: account_name
+        data_tests:
+          - not_null
+  - name: stg_opportunity
+    columns:
+      - name: opportunity_id
+        data_tests:
+          - not_null
+          - unique
+      - name: account_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('stg_account')
+                field: account_id
+      - name: opportunity_name
+        data_tests:
+          - not_null
