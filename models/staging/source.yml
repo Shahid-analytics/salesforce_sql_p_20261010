@@ -3,7 +3,7 @@ version: 2
 sources:
   - name: sql_salesforce_source
     description: ""
-    database: salesforce_bronze_p
+    database: salesforce_bronze
     schema: salesforce_data
     tables:
       - name: sf_user

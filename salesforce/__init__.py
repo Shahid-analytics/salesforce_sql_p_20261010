@@ -36,7 +36,7 @@ def salesforce_source(
     # def user_role() -> Iterable[TDataItem]:
     #     yield get_records(client, "UserRole")
 
-    @dlt.resource(write_disposition="merge")
+    @dlt.resource(write_disposition="merge",primary_key="Id")
     def opportunity(
         last_timestamp: incremental[str] = dlt.sources.incremental(
             "SystemModstamp", initial_value=None
@@ -69,7 +69,7 @@ def salesforce_source(
     #         "SystemModstamp",
     #     )
 
-    @dlt.resource(write_disposition="merge")
+    @dlt.resource(write_disposition="merge",primary_key="Id")
     def account(
         last_timestamp: incremental[str] = dlt.sources.incremental(
             "LastModifiedDate", initial_value=None

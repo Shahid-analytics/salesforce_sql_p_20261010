@@ -6,5 +6,6 @@ select
     industry,
     annual_revenue,
     number_of_employees,
-    ownership
+    ownership,
+    is_deleted
 from {{ ref('stg_account') }}

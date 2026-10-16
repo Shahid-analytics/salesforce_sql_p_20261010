@@ -7,5 +7,6 @@ select
     probability,
     expected_revenue,
     close_date,
-    type
+    type,
+    forecast_category
 from {{ ref('stg_opportunity') }}
