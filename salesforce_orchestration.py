@@ -3,6 +3,8 @@ import os
 import subprocess
 import sys
 import traceback
+import msal
+import requests
 from pathlib import Path
 
 from prefect import flow, task, get_run_logger
@@ -79,6 +81,76 @@ def run_dbt_tests():
     ])
 
 
+
+@task
+def run_powerbi_refresh():
+    logger = get_run_logger()
+
+    # Read credentials from .env
+    tenant_id = os.getenv("POWERBI_TENANT_ID")
+    client_id = os.getenv("POWERBI_CLIENT_ID")
+    client_secret = os.getenv("POWERBI_CLIENT_SECRET")
+
+    if not all([tenant_id, client_id, client_secret]):
+        raise ValueError(
+            "Missing Power BI credentials. Check the .env file."
+        )
+
+    # Power BI workspace and semantic model IDs
+    workspace_id = "65f68826-e1c2-477e-9abc-2abefee0c5dd"
+    dataset_id = "291aff46-560d-4350-9ad3-8928264a7846"
+
+    logger.info("Authenticating with Microsoft Entra...")
+
+    app = msal.ConfidentialClientApplication(
+        client_id=client_id,
+        authority=f"https://login.microsoftonline.com/{tenant_id}",
+        client_credential=client_secret,
+    )
+
+    token_result = app.acquire_token_for_client(
+        scopes=[
+            "https://analysis.windows.net/powerbi/api/.default"
+        ]
+    )
+
+    if "access_token" not in token_result:
+        raise RuntimeError(
+            "Power BI authentication failed: "
+            + token_result.get(
+                "error_description", "Unknown authentication error"
+            )
+        )
+
+    logger.info("Authentication successful.")
+
+    # Request the semantic model refresh
+    url = (
+        "https://api.powerbi.com/v1.0/myorg/groups/"
+        f"{workspace_id}/datasets/{dataset_id}/refreshes"
+    )
+
+    response = requests.post(
+        url,
+        headers={
+            "Authorization": f"Bearer {token_result['access_token']}",
+            "Content-Type": "application/json",
+        },
+        json={"notifyOption": "NoNotification"},
+        timeout=30,
+    )
+
+    if response.status_code != 202:
+        raise RuntimeError(
+            f"Power BI refresh request failed: "
+            f"HTTP {response.status_code} - {response.text}"
+        )
+
+    logger.info(
+        "Power BI accepted the semantic model refresh request."
+    )
+
+
 @flow(name="salesforce-pipeline-flow")
 def salesforce_pipeline_flow():
     logger = get_run_logger()
@@ -88,6 +160,7 @@ def salesforce_pipeline_flow():
         run_dbt_staging()
         run_dbt_tests()
         run_dbt_marts()
+        run_powerbi_refresh()
 
     except Exception as exc:
         logger.exception("Salesforce pipeline failed.")
